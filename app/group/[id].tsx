@@ -13,6 +13,11 @@ import {
   type PhotoRow,
 } from '@/db/queries';
 import { resolveGroup, type ResolveAction } from '@/services/cleanup';
+import {
+  isOverFreeQuota,
+  isPaid,
+  useSettingsStore,
+} from '@/stores/settingsStore';
 import { lightColors } from '@/theme/colors';
 import { radius, spacing } from '@/theme/tokens';
 import { formatDateKo, formatMB } from '@/utils/format';
@@ -50,6 +55,15 @@ export default function GroupDetailScreen() {
   const onAction = useCallback(
     async (action: ResolveAction) => {
       if (!group) return;
+
+      // Paywall gate for delete actions only.
+      if (action === 'kept_best' || action === 'deleted_all') {
+        const { plan, freeQuotaUsed } = useSettingsStore.getState();
+        if (!isPaid(plan) && isOverFreeQuota(freeQuotaUsed)) {
+          router.push('/paywall');
+          return;
+        }
+      }
 
       const toDelete: PhotoRow[] =
         action === 'kept_best' ? similar : action === 'deleted_all' ? photos : [];

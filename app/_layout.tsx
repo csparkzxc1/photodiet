@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RewardToast } from '@/components/RewardToast';
 import { initDatabase } from '@/db/client';
 import { useFonts } from '@/hooks/useFonts';
+import { configurePurchases, refreshPlanFromStore } from '@/services/purchases';
 import { initSentry } from '@/services/sentry';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { createLogger } from '@/utils/log';
@@ -51,6 +52,12 @@ export default function RootLayout() {
         log.error('db init failed', err);
         setDbReady(true);
       });
+  }, []);
+
+  useEffect(() => {
+    if (configurePurchases()) {
+      refreshPlanFromStore().catch(() => undefined);
+    }
   }, []);
 
   useEffect(() => {
