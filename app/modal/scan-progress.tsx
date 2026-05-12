@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { Button, Screen, Text } from '@/components/ui';
 import { ko } from '@/copy/ko';
+import { analyzeAllPending, clusterAllPhotos } from '@/services/analyzer';
 import { indexAllPhotos } from '@/services/photos';
 import { runFullScan } from '@/services/scanRunner';
 import { useScanStore } from '@/stores/scanStore';
@@ -21,7 +22,11 @@ export default function ScanProgressScreen() {
 
   useEffect(() => {
     abortRef.current = { aborted: false };
-    runFullScan(abortRef.current, { indexAllPhotos }).catch(() => undefined);
+    runFullScan(abortRef.current, {
+      indexAllPhotos,
+      analyzeAllPending,
+      clusterAllPhotos,
+    }).catch(() => undefined);
     return () => {
       abortRef.current.aborted = true;
     };
@@ -113,7 +118,11 @@ export default function ScanProgressScreen() {
                 router.replace('/(tabs)');
               } else {
                 abortRef.current = { aborted: false };
-                runFullScan(abortRef.current, { indexAllPhotos }).catch(() => undefined);
+                runFullScan(abortRef.current, {
+      indexAllPhotos,
+      analyzeAllPending,
+      clusterAllPhotos,
+    }).catch(() => undefined);
               }
             }}
           />

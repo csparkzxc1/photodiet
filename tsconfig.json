@@ -13,7 +13,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@app/*": ["./app/*"]
+      "@app/*": ["./app/*"],
+      "photo-feature-print": ["./modules/photo-feature-print/index.ts"]
     }
   },
   "include": [
