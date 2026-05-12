@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { RewardToast } from '@/components/RewardToast';
 import { initDatabase } from '@/db/client';
 import { useFonts } from '@/hooks/useFonts';
 import { initSentry } from '@/services/sentry';
@@ -79,6 +80,7 @@ export default function RootLayout() {
             options={{ presentation: 'modal' }}
           />
         </Stack>
+        <RewardToast />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

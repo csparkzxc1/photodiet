@@ -1,10 +1,13 @@
 import {
+  getCleanupTotals,
   insertCleanupLog,
   markGroupResolved,
   markPhotosDeleted,
   type PhotoRow,
 } from '@/db/queries';
 import { deleteAssetsFromLibrary } from '@/services/photos';
+import { useRewardStore } from '@/stores/rewardStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { createLogger } from '@/utils/log';
 
 const log = createLogger('cleanup');
@@ -53,6 +56,15 @@ export async function resolveGroup(input: ResolveInput): Promise<ResolveResult> 
     deleted_count: deletedCount,
     bytes_freed: bytesFreed,
   });
+
+  // Bump free-quota usage and fire reward toast for delete actions.
+  if (action === 'kept_best' || action === 'deleted_all') {
+    await useSettingsStore.getState().incrementFreeQuota();
+    if (bytesFreed > 0) {
+      const totals = await getCleanupTotals();
+      useRewardStore.getState().show(bytesFreed, totals.totalBytesFreed);
+    }
+  }
 
   log.info('group resolved', { groupId, action, deletedCount, bytesFreed });
   return { deletedCount, bytesFreed };
