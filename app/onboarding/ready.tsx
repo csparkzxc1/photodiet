@@ -3,10 +3,18 @@ import { View } from 'react-native';
 
 import { Button, Screen, Text } from '@/components/ui';
 import { ko } from '@/copy/ko';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { lightColors } from '@/theme/colors';
 import { spacing } from '@/theme/tokens';
 
 export default function ReadyScreen() {
+  const setOnboardingCompleted = useSettingsStore((s) => s.setOnboardingCompleted);
+
+  const onStart = async () => {
+    await setOnboardingCompleted(true);
+    router.replace('/modal/scan-progress');
+  };
+
   return (
     <Screen>
       <View style={{ flex: 1, justifyContent: 'space-between' }}>
@@ -20,7 +28,7 @@ export default function ReadyScreen() {
           label={ko.onboarding.ready.cta}
           size="lg"
           fullWidth
-          onPress={() => router.replace('/(tabs)')}
+          onPress={onStart}
         />
       </View>
     </Screen>
