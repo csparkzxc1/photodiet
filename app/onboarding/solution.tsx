@@ -3,32 +3,24 @@ import { View } from 'react-native';
 
 import { Button, Screen, Text } from '@/components/ui';
 import { ko } from '@/copy/ko';
-import { useSettingsStore } from '@/stores/settingsStore';
 import { lightColors } from '@/theme/colors';
 import { spacing } from '@/theme/tokens';
 
-export default function ReadyScreen() {
-  const setOnboardingCompleted = useSettingsStore((s) => s.setOnboardingCompleted);
-
-  const onStart = async () => {
-    await setOnboardingCompleted(true);
-    router.replace('/modal/scan-progress');
-  };
-
+export default function SolutionScreen() {
   return (
     <Screen>
       <View style={{ flex: 1, justifyContent: 'space-between' }}>
         <View style={{ gap: spacing.md, marginTop: spacing.xxl }}>
-          <Text variant="display">{ko.onboarding.ready.title}</Text>
+          <Text variant="display">{ko.onboarding.solution.title}</Text>
           <Text variant="body" color={lightColors.textSub}>
-            {ko.onboarding.ready.body}
+            {ko.onboarding.solution.body}
           </Text>
         </View>
         <Button
-          label={ko.onboarding.ready.cta}
+          label={ko.onboarding.solution.cta}
           size="lg"
           fullWidth
-          onPress={onStart}
+          onPress={() => router.push('/onboarding/privacy')}
         />
       </View>
     </Screen>

@@ -14,7 +14,6 @@ const OFFERING_ID = 'default';
 
 export const PRODUCTS = {
   lifetime: 'photodiet_lifetime',
-  monthly: 'photodiet_monthly',
 } as const;
 
 let configured = false;
@@ -50,9 +49,7 @@ export function configurePurchases(): boolean {
 function planFromCustomerInfo(info: CustomerInfo): Plan {
   const ent = info.entitlements.active[ENTITLEMENT_ID];
   if (!ent) return 'free';
-  const product = ent.productIdentifier;
-  if (product === PRODUCTS.lifetime) return 'lifetime';
-  if (product === PRODUCTS.monthly) return 'monthly';
+  if (ent.productIdentifier === PRODUCTS.lifetime) return 'lifetime';
   return 'free';
 }
 
@@ -71,7 +68,6 @@ export async function refreshPlanFromStore(): Promise<Plan> {
 
 export type Offering = {
   lifetime: PurchasesPackage | null;
-  monthly: PurchasesPackage | null;
 };
 
 export async function getOffering(): Promise<Offering | null> {
@@ -82,8 +78,9 @@ export async function getOffering(): Promise<Offering | null> {
     if (!offering) return null;
     const packages = offering.availablePackages;
     return {
-      lifetime: packages.find((p) => p.product.identifier === PRODUCTS.lifetime) ?? null,
-      monthly: packages.find((p) => p.product.identifier === PRODUCTS.monthly) ?? null,
+      lifetime:
+        packages.find((p) => p.product.identifier === PRODUCTS.lifetime) ??
+        null,
     };
   } catch (err) {
     log.warn('getOfferings failed', err);

@@ -41,8 +41,7 @@ export default function SettingsScreen() {
   };
 
   const planLabel = (() => {
-    if (plan === 'lifetime') return '평생';
-    if (plan === 'monthly') return '월 구독';
+    if (plan === 'lifetime') return '평생 사용';
     return `무료 (${freeQuotaUsed}/${FREE_QUOTA})`;
   })();
 

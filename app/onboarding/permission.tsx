@@ -5,23 +5,24 @@ import { View } from 'react-native';
 import { Button, Screen, Text } from '@/components/ui';
 import { ko } from '@/copy/ko';
 import { openAppSettings, requestPermission } from '@/services/photos';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { lightColors } from '@/theme/colors';
 import { spacing } from '@/theme/tokens';
 
 export default function PermissionScreen() {
   const [denied, setDenied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const setOnboardingCompleted = useSettingsStore(
+    (s) => s.setOnboardingCompleted,
+  );
 
   const onRequest = async () => {
     setBusy(true);
     try {
       const state = await requestPermission();
       if (state.status === 'granted' && state.accessPrivileges === 'all') {
-        router.replace('/onboarding/ready');
-        return;
-      }
-      if (state.status === 'granted' && state.accessPrivileges === 'limited') {
-        setDenied(true);
+        await setOnboardingCompleted(true);
+        router.replace('/modal/scan-progress');
         return;
       }
       setDenied(true);

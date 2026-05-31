@@ -11,6 +11,8 @@ import { useScanStore } from '@/stores/scanStore';
 import { lightColors } from '@/theme/colors';
 import { spacing } from '@/theme/tokens';
 
+const TITLE = '사진첩 분석 중';
+
 export default function ScanProgressScreen() {
   const phase = useScanStore((s) => s.phase);
   const indexProgress = useScanStore((s) => s.indexProgress);
@@ -46,13 +48,13 @@ export default function ScanProgressScreen() {
       case 'idle':
         return ko.home.scanning;
       case 'indexing':
-        return `사진 정리 중... ${indexProgress.scanned} / ${indexProgress.total}`;
+        return ko.scan.indexing(indexProgress.scanned, indexProgress.total);
       case 'analyzing':
-        return `사진 분석 중... ${analyzeProgress.done} / ${analyzeProgress.total}`;
+        return ko.scan.analyzing(analyzeProgress.done, analyzeProgress.total);
       case 'clustering':
-        return '비슷한 사진을 묶는 중...';
+        return ko.scan.clustering;
       case 'done':
-        return `완료! ${groupCount}개 그룹을 찾았어요.`;
+        return ko.scan.done(groupCount);
       case 'error':
         return ko.common.error;
     }
@@ -67,11 +69,17 @@ export default function ScanProgressScreen() {
           ? 100
           : 0;
 
+  const isRunning =
+    phase === 'idle' ||
+    phase === 'indexing' ||
+    phase === 'analyzing' ||
+    phase === 'clustering';
+
   return (
     <Screen>
       <View style={{ flex: 1, justifyContent: 'space-between' }}>
         <View style={{ gap: spacing.md, marginTop: spacing.xxl }}>
-          <Text variant="display">{ko.onboarding.ready.title}</Text>
+          <Text variant="display">{TITLE}</Text>
           <Text variant="body" color={lightColors.textSub}>
             {phaseLabel}
           </Text>
@@ -103,30 +111,42 @@ export default function ScanProgressScreen() {
             </Text>
           </View>
 
-          {(phase === 'idle' || phase === 'indexing' || phase === 'analyzing' || phase === 'clustering') && (
-            <ActivityIndicator color={lightColors.primary} style={{ marginTop: spacing.lg }} />
+          {isRunning && (
+            <ActivityIndicator
+              color={lightColors.primary}
+              style={{ marginTop: spacing.lg }}
+            />
           )}
         </View>
 
-        {(phase === 'done' || phase === 'error') && (
-          <Button
-            label={phase === 'done' ? '확인' : ko.common.retry}
-            size="lg"
-            fullWidth
-            onPress={() => {
-              if (phase === 'done') {
-                router.replace('/(tabs)');
-              } else {
-                abortRef.current = { aborted: false };
-                runFullScan(abortRef.current, {
-      indexAllPhotos,
-      analyzeAllPending,
-      clusterAllPhotos,
-    }).catch(() => undefined);
-              }
-            }}
-          />
-        )}
+        <View style={{ gap: spacing.md }}>
+          {(phase === 'done' || phase === 'error') && (
+            <Button
+              label={phase === 'done' ? '확인' : ko.common.retry}
+              size="lg"
+              fullWidth
+              onPress={() => {
+                if (phase === 'done') {
+                  router.replace('/(tabs)');
+                } else {
+                  abortRef.current = { aborted: false };
+                  runFullScan(abortRef.current, {
+                    indexAllPhotos,
+                    analyzeAllPending,
+                    clusterAllPhotos,
+                  }).catch(() => undefined);
+                }
+              }}
+            />
+          )}
+          <Text
+            variant="caption"
+            color={lightColors.textTertiary}
+            style={{ textAlign: 'center' }}
+          >
+            🔒 {ko.scan.privacyNote}
+          </Text>
+        </View>
       </View>
     </Screen>
   );

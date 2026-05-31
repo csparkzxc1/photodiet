@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { Button, Screen, Text } from '@/components/ui';
 import { ko } from '@/copy/ko';
@@ -14,11 +14,8 @@ import {
 import { lightColors } from '@/theme/colors';
 import { radius, spacing } from '@/theme/tokens';
 
-type Selection = 'lifetime' | 'monthly';
-
 export default function PaywallScreen() {
   const [offering, setOffering] = useState<Offering | null>(null);
-  const [selection, setSelection] = useState<Selection>('lifetime');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +25,7 @@ export default function PaywallScreen() {
   }, []);
 
   const onPurchase = async () => {
-    const pkg = selection === 'lifetime' ? offering?.lifetime : offering?.monthly;
+    const pkg = offering?.lifetime;
     if (!pkg) {
       setError('상품 정보를 불러오지 못했어요.');
       return;
@@ -65,35 +62,60 @@ export default function PaywallScreen() {
     }
   };
 
-  const lifetimePrice = offering?.lifetime?.product.priceString ?? ko.paywall.lifetime.price;
-  const monthlyPrice = offering?.monthly?.product.priceString ?? ko.paywall.monthly.price;
+  const price = offering?.lifetime?.product.priceString ?? ko.paywall.lifetime.price;
 
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
-        <View style={{ gap: spacing.xs, marginTop: spacing.lg }}>
+        <View style={{ gap: spacing.sm, marginTop: spacing.lg }}>
           <Text variant="display">{ko.paywall.title}</Text>
           <Text variant="body" color={lightColors.textSub}>
             {ko.paywall.subtitle}
           </Text>
         </View>
 
-        <View style={{ gap: spacing.md }}>
-          <PlanCard
-            selected={selection === 'lifetime'}
-            label={ko.paywall.lifetime.label}
-            price={lifetimePrice}
-            sub={ko.paywall.lifetime.sub}
-            badge={ko.paywall.lifetime.badge}
-            onPress={() => setSelection('lifetime')}
-          />
-          <PlanCard
-            selected={selection === 'monthly'}
-            label={ko.paywall.monthly.label}
-            price={monthlyPrice}
-            sub={ko.paywall.monthly.sub}
-            onPress={() => setSelection('monthly')}
-          />
+        <View
+          style={{
+            backgroundColor: lightColors.surface,
+            borderRadius: radius.xl,
+            borderWidth: 2,
+            borderColor: lightColors.primary,
+            padding: spacing.lg,
+            gap: spacing.md,
+          }}
+        >
+          <View
+            style={{
+              alignSelf: 'flex-start',
+              backgroundColor: lightColors.primary,
+              borderRadius: 999,
+              paddingVertical: 4,
+              paddingHorizontal: spacing.md,
+            }}
+          >
+            <Text variant="caption" color="#FFFFFF" weight="bold">
+              {ko.paywall.lifetime.badge}
+            </Text>
+          </View>
+          <Text variant="stat" weight="bold">
+            {price}
+          </Text>
+          <Text variant="caption" color={lightColors.textSub}>
+            {ko.paywall.lifetime.sub}
+          </Text>
+          <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+            {ko.paywall.bullets.map((bullet) => (
+              <View
+                key={bullet}
+                style={{ flexDirection: 'row', gap: spacing.sm }}
+              >
+                <Text variant="body" color={lightColors.accent}>
+                  ✓
+                </Text>
+                <Text variant="body">{bullet}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         {error && (
@@ -102,9 +124,9 @@ export default function PaywallScreen() {
           </Text>
         )}
 
-        <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+        <View style={{ gap: spacing.sm }}>
           <Button
-            label="구매하기"
+            label={ko.paywall.cta}
             size="lg"
             fullWidth
             loading={busy}
@@ -128,87 +150,14 @@ export default function PaywallScreen() {
           />
         </View>
 
-        <Text variant="caption" color={lightColors.textTertiary} style={{ marginTop: spacing.md }}>
+        <Text
+          variant="caption"
+          color={lightColors.textTertiary}
+          style={{ marginTop: spacing.md }}
+        >
           {ko.paywall.legal}
         </Text>
       </ScrollView>
     </Screen>
-  );
-}
-
-type PlanCardProps = {
-  selected: boolean;
-  label: string;
-  price: string;
-  sub: string;
-  badge?: string;
-  onPress: () => void;
-};
-
-function PlanCard({ selected, label, price, sub, badge, onPress }: PlanCardProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      style={{
-        borderRadius: radius.lg,
-        borderWidth: selected ? 2 : 1,
-        borderColor: selected ? lightColors.primary : lightColors.border,
-        padding: spacing.md,
-        backgroundColor: lightColors.surface,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.md,
-      }}
-    >
-      <View
-        style={{
-          width: 22,
-          height: 22,
-          borderRadius: 11,
-          borderWidth: 2,
-          borderColor: selected ? lightColors.primary : lightColors.border,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {selected && (
-          <View
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 5,
-              backgroundColor: lightColors.primary,
-            }}
-          />
-        )}
-      </View>
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-          <Text variant="title">{label}</Text>
-          {badge && (
-            <View
-              style={{
-                backgroundColor: lightColors.primary,
-                borderRadius: 999,
-                paddingVertical: 2,
-                paddingHorizontal: 8,
-              }}
-            >
-              <Text variant="caption" color="#FFFFFF" weight="bold">
-                {badge}
-              </Text>
-            </View>
-          )}
-        </View>
-        <Text variant="caption" color={lightColors.textSub} style={{ marginTop: 2 }}>
-          {sub}
-        </Text>
-      </View>
-      <Text variant="title" weight="bold">
-        {price}
-      </Text>
-    </Pressable>
   );
 }

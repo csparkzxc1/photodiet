@@ -20,7 +20,7 @@ export default function ValueScreen() {
           label={ko.onboarding.value.cta}
           size="lg"
           fullWidth
-          onPress={() => router.push('/onboarding/privacy')}
+          onPress={() => router.push('/onboarding/solution')}
         />
       </View>
     </Screen>

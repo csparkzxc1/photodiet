@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 import { getSetting, setSetting } from '@/db/queries';
 
-export type Plan = 'free' | 'lifetime' | 'monthly';
+export type Plan = 'free' | 'lifetime';
 
 type SettingsState = {
   onboardingCompleted: boolean;
@@ -61,7 +61,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
 }));
 
 export function isPaid(plan: Plan): boolean {
-  return plan === 'lifetime' || plan === 'monthly';
+  return plan === 'lifetime';
 }
 
 export function isOverFreeQuota(used: number): boolean {

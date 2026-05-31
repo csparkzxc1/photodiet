@@ -12,7 +12,7 @@ import { ko } from '@/copy/ko';
 import { useRewardStore } from '@/stores/rewardStore';
 import { lightColors } from '@/theme/colors';
 import { radius, spacing } from '@/theme/tokens';
-import { formatGB, formatMB } from '@/utils/format';
+import { formatBytes } from '@/utils/format';
 
 const AUTO_HIDE_MS = 3000;
 
@@ -41,8 +41,8 @@ export function RewardToast() {
 
   if (!visible && opacity.value === 0) return null;
 
-  const mb = formatMB(bytesFreed);
-  const gb = formatGB(totalBytesFreed);
+  const freed = formatBytes(bytesFreed);
+  const total = formatBytes(totalBytesFreed);
 
   return (
     <Animated.View
@@ -75,10 +75,10 @@ export function RewardToast() {
       >
         <View style={{ flex: 1 }}>
           <Text variant="title" color="#FFFFFF" weight="bold">
-            {ko.reward.cleaned(mb)}
+            {ko.reward.cleaned(freed)}
           </Text>
           <Text variant="caption" color="rgba(255,255,255,0.85)">
-            {ko.reward.totalSaved(gb)}
+            {ko.reward.totalSaved(total)}
           </Text>
         </View>
       </View>

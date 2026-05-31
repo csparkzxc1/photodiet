@@ -6,27 +6,29 @@ import { GroupCard } from '@/components/GroupCard';
 import { Button, Screen, Text } from '@/components/ui';
 import { ko } from '@/copy/ko';
 import {
-  countPhotos,
   getPhoto,
+  getReclaimableSummary,
   getUnresolvedGroups,
   type GroupRow,
   type PhotoRow,
+  type ReclaimableSummary,
 } from '@/db/queries';
 import { lightColors } from '@/theme/colors';
-import { spacing } from '@/theme/tokens';
+import { radius, spacing } from '@/theme/tokens';
+import { formatBytes } from '@/utils/format';
 
 type GroupWithBest = { group: GroupRow; bestPhoto: PhotoRow | null };
 
 export default function HomeScreen() {
   const [items, setItems] = useState<GroupWithBest[]>([]);
-  const [photoCount, setPhotoCount] = useState(0);
+  const [summary, setSummary] = useState<ReclaimableSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const [groups, total] = await Promise.all([
+    const [groups, recl] = await Promise.all([
       getUnresolvedGroups(),
-      countPhotos(),
+      getReclaimableSummary(),
     ]);
     const withBest = await Promise.all(
       groups.map(async (g) => ({
@@ -35,7 +37,7 @@ export default function HomeScreen() {
       })),
     );
     setItems(withBest);
-    setPhotoCount(total);
+    setSummary(recl);
     setLoading(false);
   }, []);
 
@@ -55,6 +57,15 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [load]);
 
+  const startCleanup = useCallback(() => {
+    if (summary?.firstGroupId) {
+      router.push({
+        pathname: '/group/[id]',
+        params: { id: String(summary.firstGroupId) },
+      });
+    }
+  }, [summary]);
+
   return (
     <Screen padded={false}>
       <FlatList
@@ -68,14 +79,20 @@ export default function HomeScreen() {
         }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListHeaderComponent={
-          <View style={{ marginBottom: spacing.lg, gap: spacing.xs }}>
-            <Text variant="display">{ko.app.name}</Text>
+          <View style={{ marginBottom: spacing.lg, gap: spacing.lg }}>
             <Text variant="caption" color={lightColors.textSub}>
-              {photoCount > 0 ? `${photoCount.toLocaleString('ko-KR')}장 보관 중` : ko.app.tagline}
+              {ko.app.name}
             </Text>
-            <View style={{ marginTop: spacing.lg }}>
-              <Text variant="title">{ko.home.title}</Text>
-            </View>
+            <Hero
+              summary={summary}
+              loading={loading}
+              onStart={startCleanup}
+            />
+            {items.length > 0 && (
+              <Text variant="title" style={{ marginTop: spacing.sm }}>
+                {ko.home.title}
+              </Text>
+            )}
           </View>
         }
         ListEmptyComponent={
@@ -100,7 +117,12 @@ export default function HomeScreen() {
           <GroupCard
             group={item.group}
             bestPhoto={item.bestPhoto}
-            onPress={() => router.push({ pathname: '/group/[id]', params: { id: String(item.group.id) } })}
+            onPress={() =>
+              router.push({
+                pathname: '/group/[id]',
+                params: { id: String(item.group.id) },
+              })
+            }
           />
         )}
         refreshControl={
@@ -108,5 +130,80 @@ export default function HomeScreen() {
         }
       />
     </Screen>
+  );
+}
+
+type HeroProps = {
+  summary: ReclaimableSummary | null;
+  loading: boolean;
+  onStart: () => void;
+};
+
+function Hero({ summary, loading, onStart }: HeroProps) {
+  const hasGroups = (summary?.groupCount ?? 0) > 0;
+  const reclaimable = summary?.reclaimableBytes ?? 0;
+  const totalPhotos = summary?.totalPhotos ?? 0;
+  const removable = summary?.removablePhotos ?? 0;
+
+  const sizeLabel = reclaimable > 0 ? formatBytes(reclaimable) : null;
+
+  return (
+    <View
+      style={{
+        backgroundColor: lightColors.surface,
+        borderRadius: radius.xl,
+        borderWidth: 1,
+        borderColor: lightColors.border,
+        padding: spacing.lg,
+        gap: spacing.md,
+      }}
+    >
+      {loading ? (
+        <Text variant="body" color={lightColors.textSub}>
+          {ko.common.loading}
+        </Text>
+      ) : hasGroups ? (
+        <>
+          <View style={{ gap: spacing.xs }}>
+            <Text variant="caption" color={lightColors.textSub}>
+              확보 가능한 용량
+            </Text>
+            <Text
+              variant="display"
+              weight="bold"
+              color={lightColors.primary}
+              style={{ fontSize: 56, lineHeight: 64 }}
+            >
+              {sizeLabel ?? `${removable.toLocaleString('ko-KR')}장`}
+            </Text>
+            <Text variant="body" color={lightColors.textSub}>
+              {sizeLabel
+                ? ko.home.hero.reclaimableSub(totalPhotos, removable)
+                : ko.home.hero.reclaimableFallback(removable)}
+            </Text>
+          </View>
+          <Button
+            label={ko.home.hero.cta}
+            size="lg"
+            fullWidth
+            onPress={onStart}
+          />
+          <Text
+            variant="caption"
+            color={lightColors.textTertiary}
+            style={{ textAlign: 'center' }}
+          >
+            🔒 {ko.home.hero.privacyNote}
+          </Text>
+        </>
+      ) : (
+        <View style={{ gap: spacing.sm }}>
+          <Text variant="title">{ko.app.tagline}</Text>
+          <Text variant="body" color={lightColors.textSub}>
+            {ko.home.empty}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }

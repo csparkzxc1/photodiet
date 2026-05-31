@@ -216,6 +216,48 @@ export async function getUnresolvedGroups(): Promise<GroupRow[]> {
   );
 }
 
+export type ReclaimableSummary = {
+  groupCount: number;
+  totalPhotos: number;
+  removablePhotos: number;
+  reclaimableBytes: number;
+  firstGroupId: number | null;
+};
+
+/**
+ * Across all unresolved groups: total photos vs. "removable" (= non-best) photos
+ * and the byte sum of those removable ones. Powers the home hero number.
+ *
+ * file_size may be null for many assets; this returns a lower-bound estimate.
+ */
+export async function getReclaimableSummary(): Promise<ReclaimableSummary> {
+  const conn = db();
+  const row = await conn.getFirstAsync<{
+    group_count: number;
+    total_photos: number;
+    removable_photos: number;
+    reclaimable_bytes: number;
+    first_group_id: number | null;
+  }>(
+    `SELECT
+       COUNT(DISTINCT g.id) AS group_count,
+       COALESCE(SUM(CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END), 0) AS total_photos,
+       COALESCE(SUM(CASE WHEN p.id IS NOT NULL AND p.id != g.best_photo_id THEN 1 ELSE 0 END), 0) AS removable_photos,
+       COALESCE(SUM(CASE WHEN p.id != g.best_photo_id THEN p.file_size ELSE 0 END), 0) AS reclaimable_bytes,
+       MIN(g.id) AS first_group_id
+     FROM groups g
+     LEFT JOIN photos p ON p.group_id = g.id AND p.is_deleted_locally = 0
+     WHERE g.resolved = 0`,
+  );
+  return {
+    groupCount: row?.group_count ?? 0,
+    totalPhotos: row?.total_photos ?? 0,
+    removablePhotos: row?.removable_photos ?? 0,
+    reclaimableBytes: row?.reclaimable_bytes ?? 0,
+    firstGroupId: row?.first_group_id ?? null,
+  };
+}
+
 export async function getGroup(id: number): Promise<GroupRow | null> {
   const conn = db();
   const row = await conn.getFirstAsync<GroupRow>(
