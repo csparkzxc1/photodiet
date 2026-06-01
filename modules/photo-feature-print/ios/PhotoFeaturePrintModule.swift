@@ -114,10 +114,13 @@ public class PhotoFeaturePrintModule: Module {
     let ci = CIImage(cgImage: cg)
     let context = CIContext(options: nil)
     let kernel: [CGFloat] = [0, 1, 0, 1, -4, 1, 0, 1, 0]
+    let weights = kernel.withUnsafeBufferPointer { buf -> CIVector in
+      return CIVector(values: buf.baseAddress!, count: kernel.count)
+    }
     guard let conv = CIFilter(name: "CIConvolution3X3", parameters: [
-      kInputImageKey: ci,
-      "inputWeights": CIVector(values: kernel.map { Float($0) }.map { CGFloat($0) }, count: 9),
-      "inputBias": 0,
+      kCIInputImageKey: ci,
+      "inputWeights": weights,
+      "inputBias": NSNumber(value: 0.0),
     ])?.outputImage else { return 0 }
 
     // Render to greyscale bitmap, then compute variance.
