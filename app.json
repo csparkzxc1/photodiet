@@ -41,8 +41,7 @@
           "backgroundColor": "#FAF7F2",
           "resizeMode": "contain"
         }
-      ],
-      "@sentry/react-native/expo"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
