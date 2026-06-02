@@ -33,11 +33,12 @@ ls assets/fonts/Pretendard-*.otf   # 4개 보이면 OK
 npm run setup:fonts
 ```
 
-## 3. 환경 변수 (선택)
+## 3. 환경 변수
 
 ```bash
 cp .env.example .env
-# Sentry / RevenueCat 키는 비워둬도 빌드는 됨. 결제는 sandbox 안 됨.
+# .env에 SENTRY_DISABLE_AUTO_UPLOAD=true가 들어있는지 확인.
+# 이걸 안 켜면 Sentry org 인증이 없을 때 iOS 빌드의 마지막 단계가 실패합니다.
 ```
 
 ## 4. Prebuild + iOS 네이티브 생성
