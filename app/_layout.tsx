@@ -81,6 +81,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="group/[id]" />
+          <Stack.Screen name="album-picker" options={{ presentation: 'modal' }} />
           <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
           <Stack.Screen
             name="modal/scan-progress"

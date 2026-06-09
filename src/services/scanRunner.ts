@@ -8,6 +8,7 @@ type Deps = {
   indexAllPhotos: (
     onProgress: (p: { scanned: number; total: number }) => void,
     signal: { aborted: boolean },
+    options?: { albumIds?: string[] | null },
   ) => Promise<number>;
   analyzeAllPending: (deps: {
     onProgress: (p: { done: number; total: number }) => void;
@@ -16,9 +17,14 @@ type Deps = {
   clusterAllPhotos: () => Promise<number>;
 };
 
+export type RunScanOptions = {
+  albumIds?: string[] | null;
+};
+
 export async function runFullScan(
   signal: { aborted: boolean },
   deps: Deps,
+  options: RunScanOptions = {},
 ): Promise<void> {
   const store = useScanStore.getState();
   store.reset();
@@ -28,6 +34,7 @@ export async function runFullScan(
     await deps.indexAllPhotos(
       (p) => useScanStore.getState().setIndexProgress(p.scanned, p.total),
       signal,
+      { albumIds: options.albumIds ?? null },
     );
     if (signal.aborted) return;
 

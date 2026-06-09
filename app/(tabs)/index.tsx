@@ -87,7 +87,7 @@ export default function HomeScreen() {
   }, [summary]);
 
   const onRescan = useCallback(() => {
-    router.push('/modal/scan-progress');
+    router.push('/album-picker');
   }, []);
 
   return (

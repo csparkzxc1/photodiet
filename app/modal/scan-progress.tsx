@@ -8,6 +8,7 @@ import { analyzeAllPending, clusterAllPhotos } from '@/services/analyzer';
 import { indexAllPhotos } from '@/services/photos';
 import { runFullScan } from '@/services/scanRunner';
 import { useScanStore } from '@/stores/scanStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { lightColors } from '@/theme/colors';
 import { spacing } from '@/theme/tokens';
 
@@ -24,11 +25,12 @@ export default function ScanProgressScreen() {
 
   useEffect(() => {
     abortRef.current = { aborted: false };
-    runFullScan(abortRef.current, {
-      indexAllPhotos,
-      analyzeAllPending,
-      clusterAllPhotos,
-    }).catch(() => undefined);
+    const albumIds = useSettingsStore.getState().selectedAlbumIds;
+    runFullScan(
+      abortRef.current,
+      { indexAllPhotos, analyzeAllPending, clusterAllPhotos },
+      { albumIds },
+    ).catch(() => undefined);
     return () => {
       abortRef.current.aborted = true;
     };

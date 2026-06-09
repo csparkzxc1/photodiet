@@ -9,6 +9,7 @@ type SettingsState = {
   onboardingCompleted: boolean;
   plan: Plan;
   freeQuotaUsed: number;
+  selectedAlbumIds: string[] | null; // null = all photos
   loaded: boolean;
 };
 
@@ -17,6 +18,7 @@ type SettingsActions = {
   setOnboardingCompleted: (v: boolean) => Promise<void>;
   setPlan: (plan: Plan) => Promise<void>;
   incrementFreeQuota: () => Promise<number>;
+  setSelectedAlbumIds: (ids: string[] | null) => Promise<void>;
 };
 
 const FREE_QUOTA_LIMIT = 5;
@@ -27,19 +29,33 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
   onboardingCompleted: false,
   plan: 'free',
   freeQuotaUsed: 0,
+  selectedAlbumIds: null,
   loaded: false,
 
   load: async () => {
     await initDatabase();
-    const [onb, plan, used] = await Promise.all([
+    const [onb, plan, used, albums] = await Promise.all([
       getSetting('onboarding_completed'),
       getSetting('plan'),
       getSetting('free_quota_used'),
+      getSetting('selected_album_ids'),
     ]);
+    let albumIds: string[] | null = null;
+    if (albums) {
+      try {
+        const parsed = JSON.parse(albums) as unknown;
+        if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
+          albumIds = parsed as string[];
+        }
+      } catch {
+        albumIds = null;
+      }
+    }
     set({
       onboardingCompleted: onb === 'true',
       plan: (plan as Plan) ?? 'free',
       freeQuotaUsed: used ? parseInt(used, 10) : 0,
+      selectedAlbumIds: albumIds,
       loaded: true,
     });
   },
@@ -62,6 +78,12 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
     await setSetting('free_quota_used', String(next));
     set({ freeQuotaUsed: next });
     return next;
+  },
+
+  setSelectedAlbumIds: async (ids) => {
+    await initDatabase();
+    await setSetting('selected_album_ids', ids ? JSON.stringify(ids) : '');
+    set({ selectedAlbumIds: ids });
   },
 }));
 

@@ -24,7 +24,10 @@ export default function PermissionScreen() {
       const state = await requestPermission();
       if (state.status === 'granted' && state.accessPrivileges === 'all') {
         await setOnboardingCompleted(true);
-        router.replace('/modal/scan-progress');
+        router.replace({
+          pathname: '/album-picker',
+          params: { from: 'onboarding' },
+        });
         return;
       }
       setDenied(true);
