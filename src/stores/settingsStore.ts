@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { initDatabase } from '@/db/client';
 import { getSetting, setSetting } from '@/db/queries';
 
 export type Plan = 'free' | 'lifetime';
@@ -29,6 +30,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
   loaded: false,
 
   load: async () => {
+    await initDatabase();
     const [onb, plan, used] = await Promise.all([
       getSetting('onboarding_completed'),
       getSetting('plan'),
@@ -43,16 +45,19 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
   },
 
   setOnboardingCompleted: async (v) => {
+    await initDatabase();
     await setSetting('onboarding_completed', v ? 'true' : 'false');
     set({ onboardingCompleted: v });
   },
 
   setPlan: async (plan) => {
+    await initDatabase();
     await setSetting('plan', plan);
     set({ plan });
   },
 
   incrementFreeQuota: async () => {
+    await initDatabase();
     const next = get().freeQuotaUsed + 1;
     await setSetting('free_quota_used', String(next));
     set({ freeQuotaUsed: next });
