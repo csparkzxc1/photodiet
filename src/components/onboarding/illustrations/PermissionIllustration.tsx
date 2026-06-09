@@ -52,19 +52,18 @@ export function PermissionIllustration() {
           borderRadius: radius.lg,
           paddingVertical: 20,
           paddingHorizontal: 20,
-          gap: 8,
           alignItems: 'center',
-          width: '70%',
+          marginHorizontal: 56,
         }}
       >
         <Camera size={28} color={lightColors.text} weight="duotone" />
-        <Text variant="body" weight="bold" style={{ fontSize: 15 }}>
+        <Text variant="body" weight="bold" style={{ fontSize: 15, marginTop: 8 }}>
           사진첩 접근 권한
         </Text>
         <Text
           variant="caption"
           color={lightColors.textSub}
-          style={{ fontSize: 12, textAlign: 'center', lineHeight: 18 }}
+          style={{ fontSize: 12, textAlign: 'center', lineHeight: 18, marginTop: 4 }}
         >
           비슷한 사진 그룹을 찾기 위해{'\n'}사진첩에 접근합니다
         </Text>

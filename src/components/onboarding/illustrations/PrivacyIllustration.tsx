@@ -27,14 +27,13 @@ export function PrivacyIllustration() {
         <Lock size={56} color={lightColors.accent} weight="duotone" />
       </View>
 
-      <View style={{ gap: 8, width: '90%' }}>
+      <View style={{ gap: 8, alignSelf: 'stretch', marginHorizontal: 32 }}>
         {BULLETS.map((b) => (
           <View
             key={b}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 10,
               backgroundColor: lightColors.surface,
               paddingVertical: 10,
               paddingHorizontal: 14,
@@ -49,11 +48,12 @@ export function PrivacyIllustration() {
                 backgroundColor: lightColors.accentTint,
                 alignItems: 'center',
                 justifyContent: 'center',
+                marginRight: 10,
               }}
             >
               <Check size={13} color={lightColors.accent} weight="bold" />
             </View>
-            <Text variant="body" style={{ fontSize: 14 }}>
+            <Text variant="body" style={{ fontSize: 14, flex: 1 }}>
               {b}
             </Text>
           </View>

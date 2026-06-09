@@ -216,32 +216,40 @@ type RowProps = {
 };
 
 function Row({ icon, label, disabled, right, onPress }: RowProps) {
+  const [pressed, setPressed] = useState(false);
+  const isDisabled = disabled || !onPress;
+
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled || !onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      disabled={isDisabled}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.md,
-        paddingVertical: 14,
-        paddingHorizontal: spacing.md,
+      style={{
         opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
         borderTopWidth: 0.5,
         borderTopColor: lightColors.borderSoft,
-      })}
+      }}
     >
-      <Text style={{ fontSize: 18 }}>{icon}</Text>
-      <Text variant="body" style={{ flex: 1 }}>
-        {label}
-      </Text>
-      {right ?? (
-        onPress ? (
-          <CaretRight size={14} color={lightColors.textTertiary} weight="bold" />
-        ) : null
-      )}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: 14,
+          paddingHorizontal: spacing.md,
+        }}
+      >
+        <Text style={{ fontSize: 18, marginRight: spacing.md }}>{icon}</Text>
+        <View style={{ flex: 1 }}>
+          <Text variant="body">{label}</Text>
+        </View>
+        {right ??
+          (onPress ? (
+            <CaretRight size={14} color={lightColors.textTertiary} weight="bold" />
+          ) : null)}
+      </View>
     </Pressable>
   );
 }

@@ -49,18 +49,21 @@ function encodeEmbedding(bytes: Uint8Array): string {
   return '';
 }
 
+let moduleAvailabilityLogged = false;
+
 async function analyzeOne(assetId: string): Promise<FeaturePrintResult | null> {
   const mod = getModule();
   if (!mod) {
-    if (Platform.OS !== 'ios') {
-      log.warn('native module unavailable on this platform');
+    if (!moduleAvailabilityLogged) {
+      log.warn('native module unavailable', { platform: Platform.OS });
+      moduleAvailabilityLogged = true;
     }
     return null;
   }
   try {
     return await mod.analyzeAsset(assetId);
   } catch (err) {
-    log.warn('analyzeAsset failed', { assetId, err });
+    log.warn('analyzeAsset failed', { assetId, err: String(err) });
     return null;
   }
 }
@@ -71,6 +74,10 @@ async function analyzeOne(assetId: string): Promise<FeaturePrintResult | null> {
 export async function analyzeAllPending(deps: AnalyzeDeps = {}): Promise<number> {
   let done = 0;
   let totalProcessed = 0;
+  let succeeded = 0;
+  let failed = 0;
+  let sampleBlur: number | null = null;
+  let sampleEmbeddingBytes: number | null = null;
 
   for (;;) {
     if (deps.signal?.aborted) break;
@@ -79,7 +86,6 @@ export async function analyzeAllPending(deps: AnalyzeDeps = {}): Promise<number>
     if (ids.length === 0) break;
 
     if (done === 0) {
-      // First batch: estimate total via the count once.
       const initialBatch = ids.length;
       deps.onProgress?.({ done: 0, total: initialBatch });
     }
@@ -101,8 +107,10 @@ export async function analyzeAllPending(deps: AnalyzeDeps = {}): Promise<number>
           eyes_open_ratio: result.eyes_open_ratio,
           best_score: best,
         });
+        succeeded += 1;
+        if (sampleBlur === null) sampleBlur = result.blur_score;
+        if (sampleEmbeddingBytes === null) sampleEmbeddingBytes = embedding.length;
       } else {
-        // Mark as analyzed-but-no-result so we don't loop forever.
         await updatePhotoAnalysis(id, {
           embedding: null,
           blur_score: 0,
@@ -110,6 +118,7 @@ export async function analyzeAllPending(deps: AnalyzeDeps = {}): Promise<number>
           eyes_open_ratio: 0,
           best_score: 0,
         });
+        failed += 1;
       }
       done += 1;
       totalProcessed += 1;
@@ -117,13 +126,41 @@ export async function analyzeAllPending(deps: AnalyzeDeps = {}): Promise<number>
     }
   }
 
-  log.info('analyze complete', { processed: totalProcessed });
+  log.info('analyze complete', {
+    processed: totalProcessed,
+    succeeded,
+    failed,
+    sampleBlur,
+    sampleEmbeddingBytes,
+  });
   return totalProcessed;
 }
 
 export async function clusterAllPhotos(): Promise<number> {
   const photos = await getAllAnalyzedPhotos();
-  if (photos.length === 0) return 0;
+  if (photos.length === 0) {
+    log.info('clustering skipped: no analyzed photos');
+    return 0;
+  }
+
+  const photosWithEmbedding = photos.filter(
+    (p) => p.embedding && p.embedding.length > 0,
+  );
+
+  log.info('clustering input', {
+    total: photos.length,
+    withEmbedding: photosWithEmbedding.length,
+    firstTakenAt: photos[0]?.taken_at,
+    lastTakenAt: photos[photos.length - 1]?.taken_at,
+    timeSpanMinutes:
+      photos.length > 1
+        ? Math.round(
+            ((photos[photos.length - 1]?.taken_at ?? 0) -
+              (photos[0]?.taken_at ?? 0)) /
+              60_000,
+          )
+        : 0,
+  });
 
   const mod = getModule();
   const compute = async (a: Uint8Array, b: Uint8Array): Promise<number> => {

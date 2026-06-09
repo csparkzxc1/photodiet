@@ -39,7 +39,13 @@ export function OnboardingFrame({
             paddingVertical: spacing.lg,
           }}
         >
-          <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <View
+            style={{
+              alignSelf: 'stretch',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             {illustration}
           </View>
           <View

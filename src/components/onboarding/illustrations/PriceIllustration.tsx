@@ -13,7 +13,7 @@ const BULLETS = [
 
 export function PriceIllustration() {
   return (
-    <View style={{ gap: 18, width: '100%', alignItems: 'center' }}>
+    <View style={{ gap: 18, alignSelf: 'stretch', alignItems: 'center' }}>
       <View
         style={{
           backgroundColor: lightColors.primary,
@@ -21,21 +21,21 @@ export function PriceIllustration() {
           paddingVertical: 28,
           paddingHorizontal: 24,
           alignItems: 'center',
-          gap: 6,
-          width: '85%',
+          alignSelf: 'stretch',
+          marginHorizontal: 24,
         }}
       >
         <Text
           variant="body"
           color="rgba(255,255,255,0.85)"
-          style={{ fontSize: 14 }}
+          style={{ fontSize: 14, marginBottom: 6 }}
         >
           평생 이용권
         </Text>
         <Text
           weight="bold"
           color="#FFFFFF"
-          style={{ fontSize: 38, lineHeight: 44 }}
+          style={{ fontSize: 38, lineHeight: 44, marginBottom: 6 }}
         >
           19,900원
         </Text>
@@ -52,10 +52,10 @@ export function PriceIllustration() {
         style={{
           backgroundColor: lightColors.surface,
           borderRadius: radius.lg,
-          paddingVertical: spacing12,
+          paddingVertical: 12,
           paddingHorizontal: 16,
-          gap: 10,
-          width: '85%',
+          alignSelf: 'stretch',
+          marginHorizontal: 24,
         }}
       >
         {BULLETS.map((b, i) => (
@@ -64,8 +64,7 @@ export function PriceIllustration() {
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 12,
-              paddingVertical: 6,
+              paddingVertical: 10,
               borderTopWidth: i === 0 ? 0 : 0.5,
               borderTopColor: lightColors.borderSoft,
             }}
@@ -78,6 +77,7 @@ export function PriceIllustration() {
                 backgroundColor: lightColors.accentTint,
                 alignItems: 'center',
                 justifyContent: 'center',
+                marginRight: 12,
               }}
             >
               <Check size={13} color={lightColors.accent} weight="bold" />
@@ -89,7 +89,7 @@ export function PriceIllustration() {
               <Text
                 variant="caption"
                 color={lightColors.textSub}
-                style={{ fontSize: 12 }}
+                style={{ fontSize: 12, marginTop: 2 }}
               >
                 {b.body}
               </Text>
@@ -100,5 +100,3 @@ export function PriceIllustration() {
     </View>
   );
 }
-
-const spacing12 = 12;
