@@ -1,28 +1,17 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
 
-import { Button, Screen, Text } from '@/components/ui';
-import { ko } from '@/copy/ko';
-import { lightColors } from '@/theme/colors';
-import { spacing } from '@/theme/tokens';
+import { OnboardingFrame } from '@/components/onboarding/OnboardingFrame';
+import { SimilarPhotosIllustration } from '@/components/onboarding/illustrations/SimilarPhotosIllustration';
 
 export default function ValueScreen() {
   return (
-    <Screen>
-      <View style={{ flex: 1, justifyContent: 'space-between' }}>
-        <View style={{ gap: spacing.md, marginTop: spacing.xxl }}>
-          <Text variant="display">{ko.onboarding.value.title}</Text>
-          <Text variant="body" color={lightColors.textSub}>
-            {ko.onboarding.value.body}
-          </Text>
-        </View>
-        <Button
-          label={ko.onboarding.value.cta}
-          size="lg"
-          fullWidth
-          onPress={() => router.push('/onboarding/solution')}
-        />
-      </View>
-    </Screen>
+    <OnboardingFrame
+      step={2}
+      illustration={<SimilarPhotosIllustration />}
+      title={'이 10장,\n사실 거의 같은 사진이에요'}
+      body={'살짝씩 다른 각도, 흔들린 컷, 연속 촬영 더미. 이런 사진들이 용량을 잡아먹고 있습니다.'}
+      ctaLabel="다음"
+      onNext={() => router.push('/onboarding/solution')}
+    />
   );
 }

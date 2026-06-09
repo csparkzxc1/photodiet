@@ -1,28 +1,18 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
 
-import { Button, Screen, Text } from '@/components/ui';
-import { ko } from '@/copy/ko';
-import { lightColors } from '@/theme/colors';
-import { spacing } from '@/theme/tokens';
+import { OnboardingFrame } from '@/components/onboarding/OnboardingFrame';
+import { CapacityFullIllustration } from '@/components/onboarding/illustrations/CapacityFullIllustration';
 
 export default function WelcomeScreen() {
   return (
-    <Screen>
-      <View style={{ flex: 1, justifyContent: 'space-between' }}>
-        <View style={{ gap: spacing.md, marginTop: spacing.xxl }}>
-          <Text variant="display">{ko.onboarding.welcome.title}</Text>
-          <Text variant="body" color={lightColors.textSub}>
-            {ko.onboarding.welcome.body}
-          </Text>
-        </View>
-        <Button
-          label={ko.onboarding.welcome.cta}
-          size="lg"
-          fullWidth
-          onPress={() => router.push('/onboarding/value')}
-        />
-      </View>
-    </Screen>
+    <OnboardingFrame
+      step={1}
+      illustration={<CapacityFullIllustration />}
+      title={'용량 꽉 참.\n또 결제하셨나요?'}
+      body={'매달 구독료를 내지만 사진이 쌓이는 속도는 더 빠릅니다. 진짜 문제는 따로 있어요.'}
+      ctaLabel="다음"
+      showBack={false}
+      onNext={() => router.push('/onboarding/value')}
+    />
   );
 }

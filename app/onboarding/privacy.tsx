@@ -1,38 +1,17 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
 
-import { Button, Screen, Text } from '@/components/ui';
-import { ko } from '@/copy/ko';
-import { lightColors } from '@/theme/colors';
-import { spacing } from '@/theme/tokens';
+import { OnboardingFrame } from '@/components/onboarding/OnboardingFrame';
+import { PrivacyIllustration } from '@/components/onboarding/illustrations/PrivacyIllustration';
 
 export default function PrivacyScreen() {
   return (
-    <Screen>
-      <View style={{ flex: 1, justifyContent: 'space-between' }}>
-        <View style={{ gap: spacing.md, marginTop: spacing.xxl }}>
-          <Text variant="display">{ko.onboarding.privacy.title}</Text>
-          <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
-            {ko.onboarding.privacy.bullets.map((bullet) => (
-              <View
-                key={bullet}
-                style={{ flexDirection: 'row', gap: spacing.sm }}
-              >
-                <Text variant="body" color={lightColors.accent}>
-                  ●
-                </Text>
-                <Text variant="body">{bullet}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-        <Button
-          label={ko.onboarding.privacy.cta}
-          size="lg"
-          fullWidth
-          onPress={() => router.push('/onboarding/price')}
-        />
-      </View>
-    </Screen>
+    <OnboardingFrame
+      step={4}
+      illustration={<PrivacyIllustration />}
+      title={'사진은\n폰을 떠나지 않습니다'}
+      body={'모든 분석은 내 기기 안에서만 이루어집니다. 어디에도 업로드되지 않아요.'}
+      ctaLabel="다음"
+      onNext={() => router.push('/onboarding/price')}
+    />
   );
 }
