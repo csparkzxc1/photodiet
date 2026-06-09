@@ -129,7 +129,15 @@ public class PhotoFeaturePrintModule: Module {
 
   static func laplacianVariance(_ cg: CGImage) -> Double {
     let ci = CIImage(cgImage: cg)
-    let context = CIContext(options: nil)
+    // Linear color space so Laplacian math is physically meaningful and
+    // negative values aren't clamped during render.
+    let colorSpace = CGColorSpace(name: CGColorSpace.linearSRGB)
+      ?? CGColorSpaceCreateDeviceRGB()
+    let context = CIContext(options: [
+      .workingColorSpace: colorSpace,
+      .outputColorSpace: colorSpace,
+    ])
+
     let kernel: [CGFloat] = [0, 1, 0, 1, -4, 1, 0, 1, 0]
     let weights = kernel.withUnsafeBufferPointer { buf -> CIVector in
       return CIVector(values: buf.baseAddress!, count: kernel.count)
@@ -140,51 +148,49 @@ public class PhotoFeaturePrintModule: Module {
       "inputBias": NSNumber(value: 0.0),
     ])?.outputImage else { return 0 }
 
-    // Render to greyscale bitmap, then compute variance.
     let extent = ci.extent
     let width = Int(extent.width)
     let height = Int(extent.height)
     if width == 0 || height == 0 { return 0 }
     let totalPixels = width * height
-    let bytesPerRow = width * 4
-    var raw = [UInt8](repeating: 0, count: totalPixels * 4)
-    let colorSpace = CGColorSpaceCreateDeviceRGB()
-    guard let ctx = CGContext(
-      data: &raw,
-      width: width,
-      height: height,
-      bitsPerComponent: 8,
-      bytesPerRow: bytesPerRow,
-      space: colorSpace,
-      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return 0 }
-    guard let rendered = context.createCGImage(conv, from: extent) else { return 0 }
-    ctx.draw(rendered, in: CGRect(x: 0, y: 0, width: width, height: height))
 
-    var mean: Double = 0
-    var n: Double = 0
-    for i in 0..<totalPixels {
-      let r = Double(raw[i * 4])
-      let g = Double(raw[i * 4 + 1])
-      let b = Double(raw[i * 4 + 2])
-      let lum = 0.299 * r + 0.587 * g + 0.114 * b
-      mean += lum
-      n += 1
-    }
-    if n == 0 { return 0 }
-    mean /= n
+    // 32-bit float per channel × 4 channels = 16 bytes/pixel.
+    let bytesPerPixel = 16
+    let bytesPerRow = width * bytesPerPixel
+    let bufferSize = totalPixels * bytesPerPixel
 
-    var variance: Double = 0
+    let buffer = UnsafeMutableRawPointer.allocate(byteCount: bufferSize, alignment: 16)
+    defer { buffer.deallocate() }
+
+    context.render(
+      conv,
+      toBitmap: buffer,
+      rowBytes: bytesPerRow,
+      bounds: extent,
+      format: .RGBAf,
+      colorSpace: colorSpace
+    )
+
+    let pixels = buffer.bindMemory(to: Float32.self, capacity: totalPixels * 4)
+
+    // Variance of luminance (negatives preserved in float).
+    var sum: Double = 0
+    var sumSq: Double = 0
     for i in 0..<totalPixels {
-      let r = Double(raw[i * 4])
-      let g = Double(raw[i * 4 + 1])
-      let b = Double(raw[i * 4 + 2])
+      let r = Double(pixels[i * 4])
+      let g = Double(pixels[i * 4 + 1])
+      let b = Double(pixels[i * 4 + 2])
       let lum = 0.299 * r + 0.587 * g + 0.114 * b
-      let d = lum - mean
-      variance += d * d
+      sum += lum
+      sumSq += lum * lum
     }
-    variance /= n
-    return variance
+    let n = Double(totalPixels)
+    let mean = sum / n
+    let variance = (sumSq / n) - (mean * mean)
+
+    // Linear-RGB Laplacian variance is in (0, ~0.01). Scale to roughly
+    // match an 8-bit-scale variance (~0-1000) so existing scoring works.
+    return variance * 65025
   }
 
   static func facesAndEyes(_ cg: CGImage) -> (Int, Double) {
