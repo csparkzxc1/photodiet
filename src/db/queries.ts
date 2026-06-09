@@ -105,15 +105,34 @@ export async function countAnalyzedPhotos(): Promise<number> {
   return row?.c ?? 0;
 }
 
+/**
+ * Returns photos that need analysis:
+ * - Never analyzed (analyzed_at IS NULL), OR
+ * - Previously analyzed but no embedding (likely a prior failure when native
+ *   module was unavailable). Capped retry by setting analyzed_at far past.
+ */
 export async function getUnanalyzedAssetIds(limit: number): Promise<string[]> {
   const conn = db();
   const rows = await conn.getAllAsync<{ asset_id: string }>(
     `SELECT asset_id FROM photos
-     WHERE analyzed_at IS NULL AND is_deleted_locally = 0
+     WHERE is_deleted_locally = 0
+       AND (analyzed_at IS NULL OR embedding IS NULL)
      ORDER BY taken_at ASC LIMIT ?`,
     [limit],
   );
   return rows.map((r) => r.asset_id);
+}
+
+/**
+ * Clears analyzed_at on photos that have no embedding, so the next
+ * analyze run picks them up. Useful after fixing native module issues.
+ */
+export async function clearFailedAnalyses(): Promise<number> {
+  const conn = db();
+  const result = await conn.runAsync(
+    `UPDATE photos SET analyzed_at = NULL WHERE embedding IS NULL`,
+  );
+  return result.changes;
 }
 
 export async function getPhotosForAnalysis(limit: number): Promise<PhotoRow[]> {
