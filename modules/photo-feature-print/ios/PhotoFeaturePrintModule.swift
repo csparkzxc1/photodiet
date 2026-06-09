@@ -101,6 +101,24 @@ public class PhotoFeaturePrintModule: Module {
   static func featurePrint(_ cg: CGImage) throws -> String {
     let request = VNGenerateImageFeaturePrintRequest()
     request.imageCropAndScaleOption = .scaleFill
+
+    // iOS 17+: force CPU device when default (ANE) fails.
+    // Workaround for "Failed to create espresso context" on iOS 18.
+    if #available(iOS 17.0, *) {
+      let revision = VNGenerateImageFeaturePrintRequest.currentRevision
+      if let stageDevices = try? VNGenerateImageFeaturePrintRequest.supportedComputeDevices(for: revision) {
+        let allDevices = stageDevices.flatMap { $0.value }
+        // Prefer CPU as a safe fallback; ANE/GPU may fail to init espresso context.
+        let cpu = allDevices.first { dev in
+          if case .cpu = dev { return true }
+          return false
+        }
+        if let cpu = cpu {
+          request.setComputeDevice(cpu, for: .main)
+        }
+      }
+    }
+
     let handler = VNImageRequestHandler(cgImage: cg, options: [:])
     try handler.perform([request])
     guard let obs = request.results?.first as? VNFeaturePrintObservation else {

@@ -106,17 +106,16 @@ export async function countAnalyzedPhotos(): Promise<number> {
 }
 
 /**
- * Returns photos that need analysis:
- * - Never analyzed (analyzed_at IS NULL), OR
- * - Previously analyzed but no embedding (likely a prior failure when native
- *   module was unavailable). Capped retry by setting analyzed_at far past.
+ * Returns never-analyzed photos. Failed ones (analyzed_at set, embedding null)
+ * are NOT retried automatically — that caused infinite retry loops when Vision
+ * consistently fails (e.g. iOS 18 espresso context error). Use
+ * clearFailedAnalyses() to explicitly opt into retry.
  */
 export async function getUnanalyzedAssetIds(limit: number): Promise<string[]> {
   const conn = db();
   const rows = await conn.getAllAsync<{ asset_id: string }>(
     `SELECT asset_id FROM photos
-     WHERE is_deleted_locally = 0
-       AND (analyzed_at IS NULL OR embedding IS NULL)
+     WHERE analyzed_at IS NULL AND is_deleted_locally = 0
      ORDER BY taken_at ASC LIMIT ?`,
     [limit],
   );
@@ -124,8 +123,8 @@ export async function getUnanalyzedAssetIds(limit: number): Promise<string[]> {
 }
 
 /**
- * Clears analyzed_at on photos that have no embedding, so the next
- * analyze run picks them up. Useful after fixing native module issues.
+ * Clears analyzed_at on photos that have no embedding (i.e. previously failed),
+ * so the next analyze pass picks them up. Use after fixing native module issues.
  */
 export async function clearFailedAnalyses(): Promise<number> {
   const conn = db();

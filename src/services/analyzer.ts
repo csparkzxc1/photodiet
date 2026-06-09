@@ -68,6 +68,8 @@ async function analyzeOne(assetId: string): Promise<FeaturePrintResult | null> {
   }
 }
 
+const CIRCUIT_BREAKER_THRESHOLD = 5;
+
 /**
  * Pulls unanalyzed photos from DB in batches and writes back analysis results.
  */
@@ -76,10 +78,12 @@ export async function analyzeAllPending(deps: AnalyzeDeps = {}): Promise<number>
   let totalProcessed = 0;
   let succeeded = 0;
   let failed = 0;
+  let consecutiveFailures = 0;
+  let circuitBroken = false;
   let sampleBlur: number | null = null;
   let sampleEmbeddingBytes: number | null = null;
 
-  for (;;) {
+  outer: for (;;) {
     if (deps.signal?.aborted) break;
 
     const ids = await getUnanalyzedAssetIds(ANALYZE_BATCH);
@@ -91,7 +95,7 @@ export async function analyzeAllPending(deps: AnalyzeDeps = {}): Promise<number>
     }
 
     for (const id of ids) {
-      if (deps.signal?.aborted) break;
+      if (deps.signal?.aborted) break outer;
       const result = await analyzeOne(id);
       if (result) {
         const embedding = decodeEmbedding(result.embedding);
@@ -108,6 +112,7 @@ export async function analyzeAllPending(deps: AnalyzeDeps = {}): Promise<number>
           best_score: best,
         });
         succeeded += 1;
+        consecutiveFailures = 0;
         if (sampleBlur === null) sampleBlur = result.blur_score;
         if (sampleEmbeddingBytes === null) sampleEmbeddingBytes = embedding.length;
       } else {
@@ -119,6 +124,15 @@ export async function analyzeAllPending(deps: AnalyzeDeps = {}): Promise<number>
           best_score: 0,
         });
         failed += 1;
+        consecutiveFailures += 1;
+        if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
+          circuitBroken = true;
+          log.warn('circuit breaker tripped', {
+            consecutiveFailures,
+            doneSoFar: done,
+          });
+          break outer;
+        }
       }
       done += 1;
       totalProcessed += 1;
@@ -130,6 +144,7 @@ export async function analyzeAllPending(deps: AnalyzeDeps = {}): Promise<number>
     processed: totalProcessed,
     succeeded,
     failed,
+    circuitBroken,
     sampleBlur,
     sampleEmbeddingBytes,
   });
