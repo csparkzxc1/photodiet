@@ -39,7 +39,7 @@ export function RewardToast() {
     opacity: opacity.value,
   }));
 
-  if (!visible && opacity.value === 0) return null;
+  if (!visible) return null;
 
   const freed = formatBytes(bytesFreed);
   const total = formatBytes(totalBytesFreed);
