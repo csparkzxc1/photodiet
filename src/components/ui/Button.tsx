@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
   type PressableProps,
   type ViewStyle,
+  View,
 } from 'react-native';
 
 import { lightColors } from '@/theme/colors';
@@ -23,7 +25,10 @@ type ButtonProps = Omit<PressableProps, 'style' | 'children'> & {
   style?: ViewStyle;
 };
 
-const sizeMap: Record<Size, { paddingVertical: number; paddingHorizontal: number; fontSize: number }> = {
+const sizeMap: Record<
+  Size,
+  { paddingVertical: number; paddingHorizontal: number; fontSize: number }
+> = {
   sm: { paddingVertical: 8, paddingHorizontal: 12, fontSize: 14 },
   md: { paddingVertical: 12, paddingHorizontal: 16, fontSize: 16 },
   lg: { paddingVertical: 16, paddingHorizontal: 24, fontSize: 18 },
@@ -70,8 +75,26 @@ export function Button({
   accessibilityLabel,
   ...rest
 }: ButtonProps) {
+  const [pressed, setPressed] = useState(false);
   const sizing = sizeMap[size];
   const isDisabled = disabled || loading;
+  const palette = getColors(variant, pressed && !isDisabled);
+
+  const containerStyle: ViewStyle = {
+    minHeight: touchTarget.min,
+    borderRadius: radius.md,
+    paddingVertical: sizing.paddingVertical,
+    paddingHorizontal: sizing.paddingHorizontal,
+    backgroundColor: palette.bg,
+    borderWidth: variant === 'secondary' ? 1 : 0,
+    borderColor: palette.border,
+    opacity: isDisabled ? 0.5 : 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignSelf: fullWidth ? 'stretch' : 'auto',
+  };
 
   return (
     <Pressable
@@ -79,34 +102,15 @@ export function Button({
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
       disabled={isDisabled}
       hitSlop={8}
-      style={({ pressed }) => {
-        const palette = getColors(variant, pressed && !isDisabled);
-        return [
-          {
-            minHeight: touchTarget.min,
-            borderRadius: radius.md,
-            paddingVertical: sizing.paddingVertical,
-            paddingHorizontal: sizing.paddingHorizontal,
-            backgroundColor: palette.bg,
-            borderWidth: variant === 'secondary' ? 1 : 0,
-            borderColor: palette.border,
-            opacity: isDisabled ? 0.5 : 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'row',
-            gap: spacing.sm,
-            alignSelf: fullWidth ? 'stretch' : 'auto',
-          },
-          style,
-        ];
-      }}
+      style={[containerStyle, style]}
       {...rest}
     >
-      {({ pressed }) => {
-        const palette = getColors(variant, pressed && !isDisabled);
-        return loading ? (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        {loading ? (
           <ActivityIndicator color={palette.fg} />
         ) : (
           <Text
@@ -117,8 +121,8 @@ export function Button({
           >
             {label}
           </Text>
-        );
-      }}
+        )}
+      </View>
     </Pressable>
   );
 }
