@@ -105,8 +105,7 @@ public class PhotoFeaturePrintModule: Module {
     // iOS 17+: force CPU device when default (ANE) fails.
     // Workaround for "Failed to create espresso context" on iOS 18.
     if #available(iOS 17.0, *) {
-      let revision = VNGenerateImageFeaturePrintRequest.currentRevision
-      if let stageDevices = try? VNGenerateImageFeaturePrintRequest.supportedComputeDevices(for: revision) {
+      if let stageDevices = try? request.supportedComputeStageDevices {
         let allDevices = stageDevices.flatMap { $0.value }
         // Prefer CPU as a safe fallback; ANE/GPU may fail to init espresso context.
         let cpu = allDevices.first { dev in
