@@ -1,6 +1,9 @@
 {
-  "platforms": ["apple", "android"],
+  "platforms": ["ios", "apple", "android"],
   "apple": {
+    "modules": ["PhotoFeaturePrintModule"]
+  },
+  "ios": {
     "modules": ["PhotoFeaturePrintModule"]
   },
   "android": {
