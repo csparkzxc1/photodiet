@@ -1,18 +1,16 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
+import { CaretRight } from 'phosphor-react-native';
 import { useState } from 'react';
 import { Alert, Linking, Pressable, View } from 'react-native';
 
-import { Card, Screen, Text } from '@/components/ui';
+import { Button, Screen, Text } from '@/components/ui';
 import { ko } from '@/copy/ko';
+import { resetDatabase } from '@/db/client';
 import { restorePurchases } from '@/services/purchases';
-import {
-  FREE_QUOTA,
-  isPaid,
-  useSettingsStore,
-} from '@/stores/settingsStore';
+import { FREE_QUOTA, isPaid, useSettingsStore } from '@/stores/settingsStore';
 import { lightColors } from '@/theme/colors';
-import { spacing } from '@/theme/tokens';
+import { radius, spacing } from '@/theme/tokens';
 
 const SUPPORT_EMAIL = 'support@photodiet.app';
 const PRIVACY_URL = 'https://photodiet.app/privacy';
@@ -40,87 +38,210 @@ export default function SettingsScreen() {
     }
   };
 
-  const planLabel = (() => {
-    if (plan === 'lifetime') return '평생 사용';
-    return `무료 (${freeQuotaUsed}/${FREE_QUOTA})`;
-  })();
+  const onClearCache = () => {
+    Alert.alert(
+      '분석 캐시 지우기',
+      '인덱스와 분석 결과가 모두 지워집니다. 사진앱의 원본은 영향 없어요.\n다음 진입 시 다시 스캔합니다.',
+      [
+        { text: ko.common.cancel, style: 'cancel' },
+        {
+          text: ko.common.confirm,
+          style: 'destructive',
+          onPress: async () => {
+            await resetDatabase();
+            Alert.alert('완료', '캐시가 초기화되었어요. 앱을 다시 시작해주세요.');
+          },
+        },
+      ],
+    );
+  };
 
   return (
-    <Screen scroll>
-      <View style={{ gap: spacing.lg }}>
-        <Text variant="display">설정</Text>
+    <Screen padded={false} scroll edges={['top', 'left', 'right']}>
+      <View style={{ padding: spacing.lg, gap: spacing.lg }}>
+        <Text variant="display" weight="bold" style={{ fontSize: 28 }}>
+          설정
+        </Text>
 
-        <Card padded>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
-              <Text variant="caption" color={lightColors.textSub}>
-                {ko.settings.plan}
-              </Text>
-              <Text variant="title" style={{ marginTop: 4 }}>
-                {planLabel}
-              </Text>
-            </View>
-            {!isPaid(plan) && (
-              <Pressable onPress={() => router.push('/paywall')} hitSlop={8}>
-                <Text variant="caption" color={lightColors.primary} weight="semibold">
-                  업그레이드 →
-                </Text>
-              </Pressable>
-            )}
-          </View>
-        </Card>
+        <PlanBanner
+          plan={plan}
+          used={freeQuotaUsed}
+          onPress={() => router.push('/paywall')}
+        />
 
-        <View style={{ gap: spacing.sm }}>
-          <Row label={ko.settings.restore} disabled={busy} onPress={onRestore} />
+        <Section title="계정">
           <Row
-            label={ko.settings.privacy}
-            onPress={() => Linking.openURL(PRIVACY_URL)}
+            icon="🔄"
+            label={ko.settings.restore}
+            disabled={busy}
+            onPress={onRestore}
           />
-          <Row label={ko.settings.terms} onPress={() => Linking.openURL(TERMS_URL)} />
           <Row
+            icon="✉️"
             label={ko.settings.contact}
             onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
           />
-        </View>
+        </Section>
 
-        <Text variant="caption" color={lightColors.textTertiary} style={{ marginTop: spacing.xl }}>
-          {ko.settings.version} {Constants.expoConfig?.version ?? '0.1.0'}
+        <Section title="앱 정보">
+          <Row
+            icon="🔒"
+            label={ko.settings.privacy}
+            onPress={() => Linking.openURL(PRIVACY_URL)}
+          />
+          <Row
+            icon="📋"
+            label={ko.settings.terms}
+            onPress={() => Linking.openURL(TERMS_URL)}
+          />
+          <Row
+            icon="ℹ️"
+            label={ko.settings.version}
+            right={
+              <Text variant="caption" color={lightColors.textTertiary}>
+                {Constants.expoConfig?.version ?? '0.1.0'}
+              </Text>
+            }
+          />
+        </Section>
+
+        <Section title="데이터">
+          <Row icon="🗑️" label="분석 캐시 지우기" onPress={onClearCache} />
+        </Section>
+
+        <Text
+          variant="caption"
+          color={lightColors.textTertiary}
+          style={{ textAlign: 'center', paddingHorizontal: spacing.md, marginTop: spacing.md }}
+        >
+          사진다이어트는 사진을 외부 서버로 전송하지 않습니다.{'\n'}모든 처리는 내 기기 안에서만 이루어집니다.
         </Text>
       </View>
     </Screen>
   );
 }
 
-type RowProps = {
-  label: string;
-  disabled?: boolean;
+type PlanBannerProps = {
+  plan: 'free' | 'lifetime';
+  used: number;
   onPress: () => void;
 };
 
-function Row({ label, disabled, onPress }: RowProps) {
+function PlanBanner({ plan, used, onPress }: PlanBannerProps) {
+  if (isPaid(plan)) {
+    return (
+      <View
+        style={{
+          backgroundColor: lightColors.accentTint,
+          borderRadius: radius.lg,
+          padding: spacing.md,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.md,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text variant="title" weight="bold" color={lightColors.accent} style={{ fontSize: 16 }}>
+            평생 사용 중
+          </Text>
+          <Text variant="caption" color={lightColors.textSub}>
+            모든 기능을 이용할 수 있어요
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={{
+        backgroundColor: lightColors.primaryTint,
+        borderRadius: radius.lg,
+        padding: spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+      }}
+    >
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text variant="title" weight="bold" color={lightColors.primary} style={{ fontSize: 16 }}>
+          무료 체험 중
+        </Text>
+        <Text variant="caption" color={lightColors.textSub}>
+          {used >= FREE_QUOTA
+            ? '정리 기능을 사용하려면 구매가 필요해요'
+            : `남은 무료 정리 ${FREE_QUOTA - used}회`}
+        </Text>
+      </View>
+      <Button label="구매" size="sm" onPress={onPress} />
+    </View>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={{ gap: spacing.sm }}>
+      <Text
+        variant="caption"
+        color={lightColors.textSub}
+        style={{ paddingHorizontal: spacing.xs }}
+      >
+        {title}
+      </Text>
+      <View
+        style={{
+          backgroundColor: lightColors.surface,
+          borderRadius: radius.lg,
+          overflow: 'hidden',
+        }}
+      >
+        {children}
+      </View>
+    </View>
+  );
+}
+
+type RowProps = {
+  icon: string;
+  label: string;
+  disabled?: boolean;
+  right?: React.ReactNode;
+  onPress?: () => void;
+};
+
+function Row({ icon, label, disabled, right, onPress }: RowProps) {
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled}
+      disabled={disabled || !onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
       style={({ pressed }) => ({
-        backgroundColor: lightColors.surface,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: lightColors.border,
-        paddingVertical: spacing.md,
-        paddingHorizontal: spacing.md,
-        opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        gap: spacing.md,
+        paddingVertical: 14,
+        paddingHorizontal: spacing.md,
+        opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
+        borderTopWidth: 0.5,
+        borderTopColor: lightColors.borderSoft,
       })}
     >
-      <Text variant="body">{label}</Text>
-      <Text variant="body" color={lightColors.textTertiary}>
-        ›
+      <Text style={{ fontSize: 18 }}>{icon}</Text>
+      <Text variant="body" style={{ flex: 1 }}>
+        {label}
       </Text>
+      {right ?? (
+        onPress ? (
+          <CaretRight size={14} color={lightColors.textTertiary} weight="bold" />
+        ) : null
+      )}
     </Pressable>
   );
 }

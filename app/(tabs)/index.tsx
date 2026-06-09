@@ -1,12 +1,14 @@
 import { router, useFocusEffect } from 'expo-router';
+import { Stack } from 'phosphor-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, View } from 'react-native';
 
 import { GroupCard } from '@/components/GroupCard';
 import { Button, Screen, Text } from '@/components/ui';
 import { ko } from '@/copy/ko';
 import {
   getPhoto,
+  getPhotosInGroup,
   getReclaimableSummary,
   getUnresolvedGroups,
   type GroupRow,
@@ -17,10 +19,15 @@ import { lightColors } from '@/theme/colors';
 import { radius, spacing } from '@/theme/tokens';
 import { formatBytes } from '@/utils/format';
 
-type GroupWithBest = { group: GroupRow; bestPhoto: PhotoRow | null };
+type GroupItem = {
+  group: GroupRow;
+  bestPhoto: PhotoRow | null;
+  reclaimableBytes: number;
+  removableCount: number;
+};
 
 export default function HomeScreen() {
-  const [items, setItems] = useState<GroupWithBest[]>([]);
+  const [items, setItems] = useState<GroupItem[]>([]);
   const [summary, setSummary] = useState<ReclaimableSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,13 +37,26 @@ export default function HomeScreen() {
       getUnresolvedGroups(),
       getReclaimableSummary(),
     ]);
-    const withBest = await Promise.all(
-      groups.map(async (g) => ({
-        group: g,
-        bestPhoto: g.best_photo_id ? await getPhoto(g.best_photo_id) : null,
-      })),
+    const enriched = await Promise.all(
+      groups.map(async (g): Promise<GroupItem> => {
+        const [best, photos] = await Promise.all([
+          g.best_photo_id ? getPhoto(g.best_photo_id) : Promise.resolve(null),
+          getPhotosInGroup(g.id),
+        ]);
+        const removable = photos.filter((p) => p.id !== g.best_photo_id);
+        const reclaimableBytes = removable.reduce(
+          (sum, p) => sum + (p.file_size ?? 0),
+          0,
+        );
+        return {
+          group: g,
+          bestPhoto: best,
+          reclaimableBytes,
+          removableCount: removable.length,
+        };
+      }),
     );
-    setItems(withBest);
+    setItems(enriched);
     setSummary(recl);
     setLoading(false);
   }, []);
@@ -66,57 +86,75 @@ export default function HomeScreen() {
     }
   }, [summary]);
 
+  const onRescan = useCallback(() => {
+    router.push('/modal/scan-progress');
+  }, []);
+
   return (
-    <Screen padded={false}>
+    <Screen padded={false} edges={['top', 'left', 'right']}>
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.group.id)}
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.lg,
+          paddingTop: spacing.sm,
           paddingBottom: spacing.xxl,
-          gap: spacing.md,
+          gap: spacing.sm,
         }}
-        ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListHeaderComponent={
-          <View style={{ marginBottom: spacing.lg, gap: spacing.lg }}>
-            <Text variant="caption" color={lightColors.textSub}>
-              {ko.app.name}
-            </Text>
+          <View style={{ gap: spacing.lg, marginBottom: spacing.md }}>
+            <Header onRescan={onRescan} />
             <Hero
               summary={summary}
               loading={loading}
               onStart={startCleanup}
             />
             {items.length > 0 && (
-              <Text variant="title" style={{ marginTop: spacing.sm }}>
-                {ko.home.title}
-              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-end',
+                  marginTop: spacing.sm,
+                }}
+              >
+                <Text variant="title" weight="bold">
+                  비슷한 사진 묶음
+                </Text>
+                <Text variant="caption" color={lightColors.textSub}>
+                  {items.length}개 그룹
+                </Text>
+              </View>
             )}
           </View>
         }
         ListEmptyComponent={
           !loading ? (
-            <View style={{ gap: spacing.md }}>
+            <View
+              style={{
+                gap: spacing.md,
+                paddingVertical: spacing.lg,
+                paddingHorizontal: spacing.md,
+                backgroundColor: lightColors.surface,
+                borderRadius: radius.lg,
+              }}
+            >
               <Text variant="body" color={lightColors.textSub}>
                 {ko.home.empty}
               </Text>
               <Button
                 label="다시 스캔하기"
                 variant="secondary"
-                onPress={() => router.push('/modal/scan-progress')}
+                onPress={onRescan}
               />
             </View>
-          ) : (
-            <Text variant="body" color={lightColors.textSub}>
-              {ko.common.loading}
-            </Text>
-          )
+          ) : null
         }
         renderItem={({ item }) => (
           <GroupCard
             group={item.group}
             bestPhoto={item.bestPhoto}
+            reclaimableBytes={item.reclaimableBytes}
             onPress={() =>
               router.push({
                 pathname: '/group/[id]',
@@ -133,6 +171,31 @@ export default function HomeScreen() {
   );
 }
 
+function Header({ onRescan }: { onRescan: () => void }) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: spacing.sm,
+      }}
+    >
+      <Text variant="display" weight="bold" style={{ fontSize: 26 }}>
+        사진다이어트
+      </Text>
+      <Pressable
+        onPress={onRescan}
+        accessibilityRole="button"
+        accessibilityLabel="다시 스캔"
+        hitSlop={12}
+      >
+        <Stack size={26} color={lightColors.text} weight="duotone" />
+      </Pressable>
+    </View>
+  );
+}
+
 type HeroProps = {
   summary: ReclaimableSummary | null;
   loading: boolean;
@@ -144,17 +207,15 @@ function Hero({ summary, loading, onStart }: HeroProps) {
   const reclaimable = summary?.reclaimableBytes ?? 0;
   const totalPhotos = summary?.totalPhotos ?? 0;
   const removable = summary?.removablePhotos ?? 0;
-
   const sizeLabel = reclaimable > 0 ? formatBytes(reclaimable) : null;
 
   return (
     <View
       style={{
         backgroundColor: lightColors.surface,
-        borderRadius: radius.xl,
-        borderWidth: 1,
-        borderColor: lightColors.border,
-        padding: spacing.lg,
+        borderRadius: 24,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.lg,
         gap: spacing.md,
       }}
     >
@@ -164,41 +225,41 @@ function Hero({ summary, loading, onStart }: HeroProps) {
         </Text>
       ) : hasGroups ? (
         <>
-          <View style={{ gap: spacing.xs }}>
-            <Text variant="caption" color={lightColors.textSub}>
-              확보 가능한 용량
+          <View style={{ gap: 6 }}>
+            <Text
+              variant="caption"
+              color={lightColors.textSub}
+              style={{ fontSize: 14 }}
+            >
+              지금 비울 수 있는 용량
             </Text>
             <Text
-              variant="display"
               weight="bold"
               color={lightColors.primary}
-              style={{ fontSize: 56, lineHeight: 64 }}
+              style={{ fontSize: 56, lineHeight: 60 }}
             >
-              {sizeLabel ?? `${removable.toLocaleString('ko-KR')}장`}
+              {sizeLabel ?? `${removable}장`}
             </Text>
-            <Text variant="body" color={lightColors.textSub}>
-              {sizeLabel
-                ? ko.home.hero.reclaimableSub(totalPhotos, removable)
-                : ko.home.hero.reclaimableFallback(removable)}
+            <Text
+              variant="body"
+              color={lightColors.textSub}
+              style={{ fontSize: 14 }}
+            >
+              {totalPhotos}장에서 {removable}장만 남길 수 있어요
             </Text>
           </View>
           <Button
-            label={ko.home.hero.cta}
+            label="한 번에 정리 시작"
             size="lg"
             fullWidth
             onPress={onStart}
           />
-          <Text
-            variant="caption"
-            color={lightColors.textTertiary}
-            style={{ textAlign: 'center' }}
-          >
-            🔒 {ko.home.hero.privacyNote}
-          </Text>
         </>
       ) : (
         <View style={{ gap: spacing.sm }}>
-          <Text variant="title">{ko.app.tagline}</Text>
+          <Text variant="title" weight="bold">
+            깨끗합니다!
+          </Text>
           <Text variant="body" color={lightColors.textSub}>
             {ko.home.empty}
           </Text>
