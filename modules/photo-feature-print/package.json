@@ -1,0 +1,8 @@
+{
+  "name": "photo-feature-print",
+  "version": "0.1.0",
+  "description": "Local on-device feature print + blur + face/eye analysis (VNGenerateImageFeaturePrintRequest)",
+  "main": "index.ts",
+  "types": "index.ts",
+  "private": true
+}

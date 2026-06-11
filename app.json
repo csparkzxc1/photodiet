@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "사진다이어트",
+    "slug": "photodiet",
+    "scheme": "photodiet",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "app.photodiet",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "사진첩에서 비슷한 사진을 찾아 정리해드리기 위해 필요해요. 사진은 절대 외부로 전송되지 않습니다.",
+        "NSPhotoLibraryAddUsageDescription": "사진첩에서 비슷한 사진을 찾아 정리해드리기 위해 필요해요. 사진은 절대 외부로 전송되지 않습니다.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "app.photodiet",
+      "permissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "사진첩에서 비슷한 사진을 찾아 정리해드리기 위해 필요해요. 사진은 절대 외부로 전송되지 않습니다.",
+          "savePhotosPermission": "사진첩에서 비슷한 사진을 찾아 정리해드리기 위해 필요해요. 사진은 절대 외부로 전송되지 않습니다.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FAF7F2",
+          "resizeMode": "contain"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

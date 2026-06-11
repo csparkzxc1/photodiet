@@ -1,0 +1,12 @@
+{
+  "platforms": ["ios", "apple", "android"],
+  "apple": {
+    "modules": ["PhotoFeaturePrintModule"]
+  },
+  "ios": {
+    "modules": ["PhotoFeaturePrintModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.photofeatureprint.PhotoFeaturePrintModule"]
+  }
+}
